@@ -4,6 +4,7 @@ import io
 import json
 import math
 import operator
+import time
 
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
@@ -13,7 +14,8 @@ from django.http import HttpResponse
 from django.template import loader
 from django.urls import translate_url
 from django.utils import translation
-from django.utils.timezone import localtime
+from django.utils.timezone import localtime, now
+
 try:
     # older Django
     from django.utils.translation import ugettext_lazy as _
@@ -576,7 +578,7 @@ class ExcelExporterMixin(ExporterMixin):
 
                 for future in concurrent.futures.as_completed(futures):
                     page_number = futures[future]
-
+                    print(f"Page number  {page_number} completed at time: {now().time()}")
                     try:
                         result_row, result_max_col = future.result()
                         row = max(row, result_row)
@@ -592,6 +594,8 @@ class ExcelExporterMixin(ExporterMixin):
         worksheet.freeze_panes(1, 0)
 
     def write_objects(self, worksheet, fields, iterative_sets_fields, objects, row, max_col):
+        start_time = time.time()
+        print(f"The page that starts with row number {row} has started.")
         for obj in objects:
             col = 0
 
@@ -609,7 +613,7 @@ class ExcelExporterMixin(ExporterMixin):
 
             max_col = max(col, max_col)
             row += 1
-
+        print(f"The page that ended with row number {row} lasted {time.time() - start_time:.2f} seconds.")
         return row, max_col
 
     def get_selected_fields(self, objects):
@@ -657,6 +661,7 @@ class ExcelExporterMixin(ExporterMixin):
         if not objects.exists():
             return
 
+        start_time = time.time()
         # use only selected fields
         fields, iterative_sets_fields = self.get_selected_fields(objects)
 
@@ -665,7 +670,7 @@ class ExcelExporterMixin(ExporterMixin):
 
         # write content
         self.write_content(worksheet, fields, iterative_sets_fields, objects)
-
+        print(f"The time duration of the whole xport: {time.time() - start_time:.2f} seconds.")
         # write header and content for fields requiring iteration over multiple related objects if there are any
         # self.write_iterative_sets(worksheet, fields, objects)
 
@@ -674,6 +679,8 @@ class ExcelExporterMixin(ExporterMixin):
 
         if count > settings.NUMBER_OF_THREADS:
             per_page = math.ceil(count / settings.NUMBER_OF_THREADS)
+            print(f"Exported {count} objects, {per_page} objects per page, handled by max {settings.NUMBER_OF_THREADS} threads.")
             return Paginator(objects, per_page)
 
+        print(f"Exported {count} objects, without paginator, handled by max {settings.NUMBER_OF_THREADS} threads.")
         return None
