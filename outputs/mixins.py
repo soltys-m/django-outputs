@@ -677,7 +677,7 @@ class ExcelExporterMixin(ExporterMixin):
     def get_paginator(self, objects):
         count = objects.count()
 
-        if count > settings.NUMBER_OF_THREADS:
+        if settings.NUMBER_OF_THREADS and count > settings.NUMBER_OF_THREADS:
             per_page = math.ceil(count / settings.NUMBER_OF_THREADS)
             print(f"Exported {count} objects, {per_page} objects per page, handled by max {settings.NUMBER_OF_THREADS} threads.")
             return Paginator(objects, per_page)
